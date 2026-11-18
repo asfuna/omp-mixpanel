@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { createMixpanelCore, findMixpanelTool } from "../src/core";
 import { MixpanelCredentialStore, type MixpanelOAuthFlow } from "../src/credentials";
-import { MixpanelAuthError } from "../src/errors";
+import { MixpanelAuthError, MixpanelTimeoutError } from "../src/errors";
 import {
 	MIXPANEL_MCP_URLS,
 	REGION_ENV,
@@ -84,6 +84,62 @@ describe("Mixpanel hosted MCP client", () => {
 			authorization: "Bearer access-1",
 			tool: "Get-Projects",
 		});
+	});
+
+	test("times out a tool call and leaves the connection usable", async () => {
+		const { promise: received, resolve: requestReceived } = Promise.withResolvers<void>();
+		let callCount = 0;
+		const fake = fakeServer({
+			delayMs: () => {
+				if (callCount++ === 0) {
+					requestReceived();
+					return 1_000;
+				}
+				return 0;
+			},
+		});
+		const store = await tempStore();
+		await store.save(credential());
+		const core = createMixpanelCore({ auth: { store, flow: oauthFlow(), env: {} }, client: { endpoint: fake.endpoint } });
+		cleanups.push(() => core.closeAll());
+
+		await core.listTools();
+		const pending = core.callTool("Run-Query", {}, { timeoutMs: 250 }).catch(error => error);
+		const receivedBeforeTimeout = await Promise.race([received.then(() => true), pending.then(() => false)]);
+		expect(receivedBeforeTimeout).toBe(true);
+		const timeout = await pending;
+
+		expect(timeout).toBeInstanceOf(MixpanelTimeoutError);
+		expect(timeout).toMatchObject({ timeoutMs: 250, cause: expect.anything() });
+		const result = await core.callTool("Get-Projects", {});
+		expect(result.structuredContent).toEqual({ ok: true });
+		expect(fake.requests.filter(request => request.method === "tools/call")).toHaveLength(2);
+		expect(fake.requests.filter(request => request.method === "initialize")).toHaveLength(1);
+	});
+
+	test("preserves a caller abort instead of reporting a Mixpanel timeout", async () => {
+		const { promise: received, resolve: requestReceived } = Promise.withResolvers<void>();
+		const fake = fakeServer({
+			delayMs: () => {
+				requestReceived();
+				return 500;
+			},
+		});
+		const store = await tempStore();
+		await store.save(credential());
+		const core = createMixpanelCore({ auth: { store, flow: oauthFlow(), env: {} }, client: { endpoint: fake.endpoint } });
+		cleanups.push(() => core.closeAll());
+
+		await core.listTools();
+		const controller = new AbortController();
+		const pending = core.callTool("Run-Query", {}, { signal: controller.signal, timeoutMs: 2_000 }).catch(error => error);
+		await received;
+		controller.abort();
+		const aborted = await pending;
+
+		expect(aborted).toBe(controller.signal.reason);
+		expect(aborted).toHaveProperty("name", "AbortError");
+		expect(aborted).not.toBeInstanceOf(MixpanelTimeoutError);
 	});
 
 	test("refreshes an OAuth token after HTTP 401 and retries the MCP operation", async () => {

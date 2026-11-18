@@ -27,7 +27,7 @@ export function createMixpanelCore(options: MixpanelCoreOptions = {}): MixpanelC
 			await auth.logout();
 		},
 		listTools: signal => client.listTools(signal),
-		callTool: (tool, args, signal) => client.callTool(tool, args, signal),
+		callTool: (tool, args, options) => client.callTool(tool, args, options),
 		closeAll: () => client.closeAll(),
 	};
 }

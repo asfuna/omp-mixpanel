@@ -15,6 +15,8 @@ export interface FakeMixpanelOptions {
 	/** Bearer payloads answered with HTTP 401. */
 	rejectedTokens?: Set<string>;
 	onToolCall?: (call: FakeMixpanelToolCall) => unknown;
+	/** Delay each tools/call response by the returned number of milliseconds. */
+	delayMs?: (call: FakeMixpanelToolCall) => number;
 }
 
 export interface FakeMixpanel {
@@ -76,14 +78,21 @@ export function createFakeMixpanel(options: FakeMixpanelOptions = {}): FakeMixpa
 				case "tools/list":
 					return response(id, { tools: FAKE_MIXPANEL_TOOLS });
 				case "tools/call": {
+					const call = {
+						name: tool ?? "",
+						args: (params.arguments as Record<string, unknown> | undefined) ?? {},
+					};
 					const result =
-						options.onToolCall?.({
-							name: tool ?? "",
-							args: (params.arguments as Record<string, unknown> | undefined) ?? {},
-						}) ?? {
+						options.onToolCall?.(call) ?? {
 							content: [{ type: "text", text: "Mixpanel request completed." }],
 							structuredContent: { ok: true },
 						};
+					const delayMs = options.delayMs?.(call) ?? 0;
+					if (delayMs > 0) {
+						const delay = Promise.withResolvers<void>();
+						setTimeout(() => delay.resolve(), delayMs);
+						await delay.promise;
+					}
 					return response(id, result);
 				}
 				default:

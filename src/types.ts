@@ -50,6 +50,15 @@ export interface MixpanelAccount {
 /** OAuth presentation for the Mixpanel sign-in, as OMP's own `/login` drives it. */
 export type MixpanelAuthPresenter = Pick<OAuthController, "onAuth" | "onProgress" | "onManualCodeInput" | "signal">;
 
+/** Default per-request deadline for Mixpanel MCP calls; queries routinely exceed 30 s. */
+export const DEFAULT_MIXPANEL_TIMEOUT_MS = 120_000;
+
+export interface MixpanelCallOptions {
+	signal?: AbortSignal;
+	/** Per-request deadline; defaults to DEFAULT_MIXPANEL_TIMEOUT_MS. Expiry throws MixpanelTimeoutError. */
+	timeoutMs?: number;
+}
+
 export interface MixpanelCore {
 	/** Active login (service-account env first, then stored OAuth) without touching the network. */
 	account(): Promise<MixpanelAccount | undefined>;
@@ -60,7 +69,7 @@ export interface MixpanelCore {
 	/** Tools of the Mixpanel MCP server, memoized until login/logout or tools/list_changed. */
 	listTools(signal?: AbortSignal): Promise<MCPToolDefinition[]>;
 	/** Call one Mixpanel MCP tool by its exact server name; unknown names are refused. */
-	callTool(tool: string, args: Record<string, unknown>, signal?: AbortSignal): Promise<MCPToolCallResult>;
+	callTool(tool: string, args: Record<string, unknown>, options?: MixpanelCallOptions): Promise<MCPToolCallResult>;
 	/** Close the live MCP connection (session_shutdown). */
 	closeAll(): Promise<void>;
 }
