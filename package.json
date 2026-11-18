@@ -1,0 +1,57 @@
+{
+  "name": "omp-mixpanel",
+  "version": "0.1.0",
+  "description": "Mixpanel for OMP through Mixpanel's hosted MCP server: one xd://mixpanel device for projects, events, queries, dashboards, Lexicon, cohorts, experiments, and feature flags, with the plugin's own Mixpanel OAuth sign-in or a service account",
+  "type": "module",
+  "license": "MIT",
+  "author": "Assaf Leshem",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/asfuna/omp-mixpanel.git"
+  },
+  "homepage": "https://github.com/asfuna/omp-mixpanel#readme",
+  "bugs": {
+    "url": "https://github.com/asfuna/omp-mixpanel/issues"
+  },
+  "files": [
+    "src",
+    "skills",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "check": "tsgo -p tsconfig.json --noEmit",
+    "test": "bun test"
+  },
+  "omp": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "engines": {
+    "bun": ">=1.3.14"
+  },
+  "peerDependencies": {
+    "@oh-my-pi/pi-ai": ">=18.22.2",
+    "@oh-my-pi/pi-coding-agent": ">=18.22.2",
+    "@oh-my-pi/pi-tui": ">=18.22.2"
+  },
+  "peerDependenciesMeta": {
+    "@oh-my-pi/pi-ai": {
+      "optional": true
+    },
+    "@oh-my-pi/pi-coding-agent": {
+      "optional": true
+    },
+    "@oh-my-pi/pi-tui": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@oh-my-pi/pi-ai": "18.22.2",
+    "@oh-my-pi/pi-coding-agent": "18.22.2",
+    "@oh-my-pi/pi-tui": "18.22.2",
+    "@types/bun": "^1.3.14",
+    "@typescript/native-preview": "7.0.0-dev.20260707.2"
+  }
+}
