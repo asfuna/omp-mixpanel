@@ -419,7 +419,7 @@ export function registerMixpanelTool(pi: ExtensionAPI, core: MixpanelCore = mixp
 			return executeMixpanelOperation(core, params, {
 				login: region => runMixpanelLogin(ctx, core, region, signal),
 				signal,
-				saveArtifact: content => ctx.sessionManager.saveArtifact(content, "mixpanel"),
+				saveArtifact: content => ctx.sessionManager.saveArtifact(content),
 			});
 		},
 	});

@@ -4,7 +4,7 @@ Access:
 - Not signed in: ask the user to run `/mixpanel login [us|eu|in]` or set `MIXPANEL_SERVICE_ACCOUNT_USERNAME` and `MIXPANEL_SERVICE_ACCOUNT_SECRET`.
 - `{"op":"tools"}` lists tool names with short descriptions. `{"op":"schema","tool":"<name>"}` or `{"op":"schema","tools":["<name>","..."]}` returns schemas. Call a tool with `{"tool":"<exact name>","args":{...}}`, following its schema exactly.
 - `{"op":"batch","calls":[{"tool":"Get-Events","args":{...}},...]}` runs 1–100 calls independently, with `concurrency` 1–8 (default 4). `timeout` is the per-call limit in seconds (1–600, default 120). After a timeout, read-only tools retry once and write tools never do.
-- Output that is too large spills to an artifact; page it with `read artifact://<id>:1-200`. Results include `details.ok`, and failures include `details.error`. Calls may include `structuredContent` and `artifact`. Batches include per-call `details.results`.
+- Output that is too large spills to a session file; page it with `read local://<id>.log:1-200`. Results include `details.ok`, and failures include `details.error`. Calls may include `structuredContent` and `artifact`. Batches include per-call `details.results`.
 
 Analysis workflow:
 1. Get `project_id` from `Get-Projects` and pick the project that matches the request. Never guess an ID or reuse one from another project. Pass it to every call whose schema accepts it.

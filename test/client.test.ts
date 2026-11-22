@@ -104,6 +104,7 @@ describe("Mixpanel hosted MCP client", () => {
 		cleanups.push(() => core.closeAll());
 
 		await core.listTools();
+		const initializesBefore = fake.requests.filter(request => request.method === "initialize").length;
 		const pending = core.callTool("Run-Query", {}, { timeoutMs: 250 }).catch(error => error);
 		const receivedBeforeTimeout = await Promise.race([received.then(() => true), pending.then(() => false)]);
 		expect(receivedBeforeTimeout).toBe(true);
@@ -114,7 +115,8 @@ describe("Mixpanel hosted MCP client", () => {
 		const result = await core.callTool("Get-Projects", {});
 		expect(result.structuredContent).toEqual({ ok: true });
 		expect(fake.requests.filter(request => request.method === "tools/call")).toHaveLength(2);
-		expect(fake.requests.filter(request => request.method === "initialize")).toHaveLength(1);
+		// A timed-out call must not force a reconnect.
+		expect(fake.requests.filter(request => request.method === "initialize")).toHaveLength(initializesBefore);
 	});
 
 	test("preserves a caller abort instead of reporting a Mixpanel timeout", async () => {

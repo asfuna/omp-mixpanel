@@ -11,7 +11,6 @@ import type {
 	MCPToolDefinition,
 } from "@oh-my-pi/pi-coding-agent/mcp";
 import { MCPTransportError } from "@oh-my-pi/pi-coding-agent/mcp/errors";
-import { HttpTransport } from "@oh-my-pi/pi-coding-agent/mcp/transports/http";
 import { MixpanelAuthError, MixpanelTimeoutError } from "./errors";
 import type { MixpanelAuth, MixpanelAuthMaterial } from "./credentials";
 import { DEFAULT_MIXPANEL_TIMEOUT_MS, MIXPANEL_MCP_URLS, type MixpanelCallOptions } from "./types";
@@ -195,40 +194,35 @@ export class MixpanelMcpClient {
 			MIXPANEL_CONNECTION_TIMEOUT_MS,
 			signal,
 			async deadlineSignal => {
-				let current = material;
-				let connection: MCPServerConnection;
-				try {
-					connection = await this.#connect(current, deadlineSignal);
-				} catch (error) {
-					if (!isHttpAuthFailure(error)) throw error;
-					current = await this.#auth.recover(current.token, deadlineSignal, current.region);
-					try {
-						connection = await this.#connect(current, deadlineSignal);
-					} catch (retryError) {
-						if (isHttpAuthFailure(retryError)) throw rejectedLogin(retryError);
-						throw retryError;
-					}
-				}
-				const entry: MixpanelConnection = {
-					connection,
-					token: current.token,
-					region: current.region,
+				const entry: Omit<MixpanelConnection, "connection"> = {
+					token: material.token,
+					region: material.region,
 					active: 0,
 					retired: false,
 				};
-				if (connection.transport instanceof HttpTransport) {
-					connection.transport.onAuthError = async () => {
+				let connection: MCPServerConnection;
+				try {
+					// The host link retries once with refreshed headers on a 401/403, at attach and on any request.
+					connection = await this.#connect(material, deadlineSignal, async () => {
 						const recovered = await this.#auth.recover(entry.token, undefined, entry.region);
 						entry.token = recovered.token;
 						return recovered.headers;
-					};
+					});
+				} catch (error) {
+					if (isHttpAuthFailure(error)) throw rejectedLogin(error);
+					throw error;
 				}
-				return entry;
+				// Same object: later refreshes update the token #acquire compares against.
+				return Object.assign(entry, { connection });
 			},
 		);
 	}
 
-	#connect(material: MixpanelAuthMaterial, signal?: AbortSignal): Promise<MCPServerConnection> {
+	#connect(
+		material: MixpanelAuthMaterial,
+		signal: AbortSignal,
+		onAuthError: () => Promise<Record<string, string>>,
+	): Promise<MCPServerConnection> {
 		const config: MCPHttpServerConfig = {
 			type: "http",
 			timeout: 0,
@@ -237,7 +231,8 @@ export class MixpanelMcpClient {
 			headers: material.headers,
 		};
 		return connectToServer("mixpanel", config, {
-			...(signal ? { signal } : {}),
+			signal,
+			onAuthError,
 			onNotification: method => {
 				if (method !== "notifications/tools/list_changed") return;
 				this.#tools = undefined;

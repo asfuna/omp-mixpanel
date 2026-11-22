@@ -73,7 +73,7 @@ All Mixpanel requests go through `xd://mixpanel`. List available server tools fi
 
 Use the schema returned by the server for each tool's arguments. For analysis, resolve `project_id` with `Get-Projects`, read `Get-Business-Context`, discover events and properties, then call `Get-Query-Schema` before `Run-Query`. Prefer `Get-Report` for saved reports and cite report or dashboard URLs from Mixpanel's results.
 
-`call` and `batch` accept `timeout` in seconds (1–600; default 120); read-only tools retry once after a timeout, while write tools are not retried. `batch` runs 1–100 independent calls with concurrency 1–8 (default 4). Oversized call, batch, and schema output spills to an artifact; page with `read artifact://<id>:1-200`. Results include `details.ok`, failures include `details.error`, calls may include `structuredContent` and `artifact`, and batches include per-call `details.results`.
+`call` and `batch` accept `timeout` in seconds (1–600; default 120); read-only tools retry once after a timeout, while write tools are not retried. `batch` runs 1–100 independent calls with concurrency 1–8 (default 4). Oversized call, batch, and schema output spills to a session file; page with `read local://<id>.log:1-200`. Results include `details.ok`, failures include `details.error`, calls may include `structuredContent` and `artifact`, and batches include per-call `details.results`.
 
 Approval tiers:
 

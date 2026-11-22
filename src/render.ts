@@ -1,4 +1,5 @@
 import type { MCPToolCallResult, MCPToolDefinition } from "@oh-my-pi/pi-coding-agent/mcp";
+import { spillUrl } from "@oh-my-pi/pi-utils";
 import type { MixpanelAccount } from "./types";
 
 export const MAX_RENDERED_CHARS = 32_000;
@@ -46,7 +47,7 @@ export async function spillRenderedText(
 
 	const lines = fullText.split(/\r\n|\r|\n/u).length;
 	return {
-		text: `${fullText.slice(0, 4_000)}\n\n[Full response: ${fullText.length} chars, ${lines} lines saved to artifact://${artifact} — page with read artifact://${artifact}:1-200]`,
+		text: `${fullText.slice(0, 4_000)}\n\n[Full response: ${fullText.length} chars, ${lines} lines saved to ${spillUrl(artifact)} — page with read ${spillUrl(artifact)}:1-200]`,
 		artifact,
 	};
 }
@@ -58,6 +59,10 @@ function renderContentBlock(block: MCPToolCallResult["content"][number]): string
 			return block.text.replace(/^[ \t]*SECURITY NOTICE[\s\S]*?(?:\r?\n[ \t]*\r?\n|$(?![\s\S]))/u, "").trimStart();
 		case "image":
 			return `[MCP image omitted: ${block.mimeType}]`;
+		case "audio":
+			return `[MCP audio omitted: ${block.mimeType}]`;
+		case "resource_link":
+			return `Resource link: ${block.uri}`;
 		case "resource": {
 			const body = block.resource.text ?? `[Binary resource omitted: ${block.resource.mimeType ?? "unknown type"}]`;
 			return `Resource: ${block.resource.uri}\n\n${body}`;

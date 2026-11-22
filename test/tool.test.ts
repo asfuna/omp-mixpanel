@@ -280,13 +280,13 @@ test("oversized call output is saved in pretty JSON and returns an artifact refe
 	const result = await executeMixpanelOperation(core, { tool: "Get-Projects" }, {
 		saveArtifact: async content => {
 			saved = content;
-			return "mixpanel-result";
+			return "7";
 		},
 	});
 	expect(saved).toBe(`${MIXPANEL_UNTRUSTED_DATA_NOTICE}\n\n${JSON.stringify(payload, null, 2)}`);
 	expect(saved.length).toBeGreaterThan(MAX_RENDERED_CHARS);
-	expect(result.details.artifact).toBe("mixpanel-result");
-	expect(textOf(result)).toContain("saved to artifact://mixpanel-result");
+	expect(result.details.artifact).toBe("7");
+	expect(textOf(result)).toContain("saved to local://7.log — page with read local://7.log:1-200");
 	expect(textOf(result)).toContain(`${saved.length} chars, ${saved.split(/\r\n|\r|\n/u).length} lines`);
 	expect(textOf(result).startsWith(saved.slice(0, 4_000))).toBe(true);
 });
